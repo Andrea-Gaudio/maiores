@@ -1,0 +1,134 @@
+import base64
+import json
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+
+from google import genai
+from schemas import DocumentExtraction
+
+MODEL_NAME = "gemini-3.1-flash-lite"
+
+TRANSCRIPTION_PROMPT = """
+You are an expert in Italian paleography. Transcribe this historical Italian civil
+registry document as faithfully as possible, preserving the original wording, 
+including all names, ages, dates, places, professions, and relational phrases
+(e.g. "di", "fu", "figlio di", "residente in"). Do not summarize, correct, or
+interpret — just transcribe exactly what is written, including uncertain or
+partially legible words marked with [?].
+"""
+
+STRUCTURE_PROMPT = """
+You are an expert in Italian paleography and civil registry archives. You will
+receive a transcription of a historical Italian civil registry document (birth,
+marriage, marriage banns, or death certificate). Extract all people mentioned and
+their relationships, following exactly the provided schema.
+
+Important rules:
+- Report first name and surname exactly as written in the transcription, without correcting or normalizing them.
+- If information is not present or legible, leave the field null: do not invent data.
+- Pay attention to "di" (living person) vs "fu" (deceased person) for the is_alive field.
+- Every person must have a unique local_id that correctly links them to others via
+  father_id, mother_id, spouse_id.
+
+IMPORTANT - completeness of data for EVERY person:
+Extract complete anagraphic data (age, birth place, residence, profession if present)
+for EVERY person mentioned in the document, not just the main subject of the act.
+This explicitly includes parents (father and mother) of spouses/newborns, and witnesses.
+
+Example:
+Transcription snippet: "...è morto Corippolo Giovanni Battista Luigi di anni
+sessantaquattro, agricoltore, residente in Cuorgnè, nato in Cuorgnè, da fu Giacomo,
+già contadino domiciliato in Cuorgnè, e dalla fu Fornengo Anna, già casalinga,
+domiciliata in Cuorgnè..."
+Expected extraction for the father: name="Giacomo", is_alive=false (introduced by "fu"),
+residence="Cuorgnè", profession="contadino".
+Expected extraction for the mother: name="Anna", surname="Fornengo", is_alive=false
+(introduced by "fu"), residence="Cuorgnè", profession="casalinga".
+"""
+
+
+def encode_image(image_path: str) -> str:
+    with open(image_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
+def _guess_mime_type(image_path: str) -> str:
+    ext = Path(image_path).suffix.lower()
+    mapping = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }
+    if ext not in mapping:
+        raise ValueError(f"Estensione immagine non supportata: {ext}")
+    return mapping[ext]
+
+def transcribe_document(image_path: str, model_name: str = MODEL_NAME) -> DocumentExtraction:
+    image_b64 = encode_image(image_path)
+    mime_type = _guess_mime_type(image_path)
+
+    client = genai.Client()
+
+    response = client.models.generate_content(
+        model=model_name,
+        contents=[
+            {"inline_data": {"mime_type": mime_type, "data": image_b64}},
+            TRANSCRIPTION_PROMPT,
+        ],
+    )
+
+    return response.text
+
+
+def extract_structure_from_transcription(transcription: str, model_name:str = MODEL_NAME):
+    client = genai.Client()
+
+    response = client.models.generate_content(
+        model = model_name, 
+        contents = [
+            f"Below you can find the transcription of an italian historical document:\n\n{transcription}",
+            STRUCTURE_PROMPT,
+
+        ],
+        config={
+            "response_mime_type" : "application/json", 
+            "response_schema" : DocumentExtraction,
+        },
+    )
+    
+    return DocumentExtraction.model_validate_json(response.text)
+
+
+def process_document(image_path:str, model_name:str = MODEL_NAME) -> tuple[DocumentExtraction, str]:
+    transcription = transcribe_document(image_path, model_name)
+    result = extract_structure_from_transcription(transcription, model_name)
+    return result, transcription
+
+
+
+def save_extraction(
+    result: DocumentExtraction,
+    image_path: str,
+    output_dir: str = "data/2-processed",
+    transcription: str | None = None,
+    tag: str | None = None
+    ) -> str:
+
+    image_name = Path(image_path).stem
+    filename = f"{image_name}__{tag}.json" if tag else f"{image_name}.json"
+    output_path = Path(output_dir) / filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "source_image": str(image_path),
+        "extracted_at": datetime.now(timezone.utc).isoformat(),
+        "model": model_name if (model_name := MODEL_NAME) else MODEL_NAME,
+        "transcription" : transcription,
+        "extraction": json.loads(result.model_dump_json()),
+    }
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    return str(output_path)
