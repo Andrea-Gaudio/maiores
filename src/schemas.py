@@ -11,11 +11,16 @@ class DocumentPerson(BaseModel):
 
     name: Optional[str] = Field(
         None,
-        description="the first name of the person, exactly as reported in the document"
+        description="the first name (nome) of the person, exactly as reported in the document"
     )
     surname: Optional[str] = Field(
         None,
-        description="the last name of the person, exactly as reported in the document"
+        description="the last name (cognome) of the person, exactly as reported in the document"
+    )
+
+    gender: Literal["male", "female"] = Field(
+        None, 
+        description = "the sex/gender of the person, if indicated in the document"
     )
 
     age: Optional[str] = Field(
@@ -55,7 +60,7 @@ class DocumentPerson(BaseModel):
 
     role: Literal[
         "newborn", "husband", "bride", "dead",
-        "father", "mother", "witness", "officiant"
+        "father", "mother", "witness", "officiant", "spouse_of_the_deceased"
     ] = Field(
         ...,
         description="the role this person plays in the document. father/mother refer to the parents of the newborn (birth certs) or of a spouse (marriage certs), depending on document_type"

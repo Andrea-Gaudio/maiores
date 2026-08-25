@@ -8,8 +8,8 @@
     "people_present": [
       {
         "local_id": "officiant_01",
-        "name": "Bassoli",
-        "surname": "Oddone",
+        "name": "Oddone",
+        "surname": "Bassoli",
         "age": null,
         "birth_date": null,
         "death_date": null,
@@ -24,8 +24,8 @@
       },
       {
         "local_id": "witness_01",
-        "name": "Vernetti",
-        "surname": "Pietro",
+        "name": "Pietro",
+        "surname": "Vernetti",
         "age": "63",
         "birth_date": null,
         "death_date": null,
@@ -40,8 +40,8 @@
       },
       {
         "local_id": "witness_02",
-        "name": "Vernetti",
-        "surname": "Giuseppe",
+        "name": "Giuseppe",
+        "surname": "Vernetti",
         "age": "56",
         "birth_date": null,
         "death_date": null,
@@ -56,8 +56,8 @@
       },
       {
         "local_id": "deceased_01",
-        "name": "Corippolo",
-        "surname": "Giovanni Battista Luigi",
+        "name": "Giovanni Battista Luigi",
+        "surname": "Corippolo",
         "age": "74",
         "birth_date": null,
         "death_date": "1929-01-09",
@@ -88,8 +88,8 @@
       },
       {
         "local_id": "mother_01",
-        "name": "Fornengo",
-        "surname": "Anna",
+        "name": "Anna",
+        "surname": "Fornengo",
         "age": null,
         "birth_date": null,
         "death_date": null,
@@ -104,8 +104,8 @@
       },
       {
         "local_id": "spouse_01",
-        "name": "Ricanda",
-        "surname": "Margherita Anna",
+        "name": "Margherita Anna",
+        "surname": "Ricanda",
         "age": null,
         "birth_date": null,
         "death_date": null,
@@ -113,7 +113,7 @@
         "birthplace": null,
         "residence": null,
         "profession": null,
-        "role": "mother",
+        "role": "spouse_of_the_deceased",
         "father_id": null,
         "mother_id": null,
         "spouse_id": "deceased_01"
@@ -136,8 +136,8 @@
       },
       {
         "local_id": "witness_04",
-        "name": "Antonietto",
-        "surname": "Domenico",
+        "name": "Domenico",
+        "surname": "Antonietto",
         "age": "39",
         "birth_date": null,
         "death_date": null,

@@ -16,6 +16,9 @@ including all names, ages, dates, places, professions, and relational phrases
 (e.g. "di", "fu", "figlio di", "residente in"). Do not summarize, correct, or
 interpret — just transcribe exactly what is written, including uncertain or
 partially legible words marked with [?].
+
+ATTENTION
+- Always indicate the birth, marriage or death date of the main people, if present
 """
 
 STRUCTURE_PROMPT = """
@@ -99,6 +102,50 @@ def extract_structure_from_transcription(transcription: str, model_name:str = MO
     
     return DocumentExtraction.model_validate_json(response.text)
 
+def enforce_consistency(result: DocumentExtraction) -> DocumentExtraction:
+    
+    # modify is_alive status based on role
+
+    for person in result.people_present:
+        if person.role == "dead":
+            person.is_alive = False
+        elif person.role in ("witness", "officiant"):
+            person.is_alive = True
+        elif person.role in ("husband", "bride") and result.document_type in ("Marriage_Certificate", "Marriage_Banns"):
+            person.is_alive = True
+
+    # modify role based on relationship
+
+    people_by_id = {p.local_id: p for p in result.people_present}
+
+    for person in result.people_present:
+        if person.father_id and person.father_id in people_by_id:
+            people_by_id[person.father_id].role = "father"
+        if person.mother_id and person.mother_id in people_by_id:
+            people_by_id[person.mother_id].role = "mother"
+        if person.spouse_id and person.spouse_id in people_by_id:
+            partner = people_by_id[person.spouse_id]
+            if person.role == "dead" and partner.role not in ("husband", "bride", "father", "mother"):
+                partner.role = "spouse_of_deceased"
+
+    # enforce symmetry in relationships
+
+    for person in result.people_present:
+        if person.spouse_id and person.spouse_id in people_by_id:
+            partner = people_by_id[person.spouse_id]
+            if not partner.spouse_id:
+                partner.spouse_id = person.local_id
+
+
+    # enforce gender in case of specific roles
+
+    for person in result.people_present:
+        if person.role in ("father", "husband"):
+            person.gender = "male"
+        if person.role in ("mother", "bride"):
+            person.gender = "female"
+
+    return result
 
 def process_document(image_path:str, model_name:str = MODEL_NAME) -> tuple[DocumentExtraction, str]:
     transcription = transcribe_document(image_path, model_name)
