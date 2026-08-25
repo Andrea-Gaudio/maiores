@@ -19,6 +19,10 @@ partially legible words marked with [?].
 
 ATTENTION
 - Always indicate the birth, marriage or death date of the main people, if present
+- In the Fascist period (1927-1943) often are present TWO year markers next
+to each other at the top of the act: the Gregorian year written in words (e.g.
+"millenovecento ventinove") AND a small Roman numeral (e.g. "VII") indicating the
+Fascist Era year 
 """
 
 STRUCTURE_PROMPT = """
@@ -103,20 +107,18 @@ def extract_structure_from_transcription(transcription: str, model_name:str = MO
     return DocumentExtraction.model_validate_json(response.text)
 
 def enforce_consistency(result: DocumentExtraction) -> DocumentExtraction:
-    
-    # modify is_alive status based on role
-
-    for person in result.people_present:
-        if person.role == "dead":
-            person.is_alive = False
-        elif person.role in ("witness", "officiant"):
-            person.is_alive = True
-        elif person.role in ("husband", "bride") and result.document_type in ("Marriage_Certificate", "Marriage_Banns"):
-            person.is_alive = True
-
-    # modify role based on relationship
 
     people_by_id = {p.local_id: p for p in result.people_present}
+
+    # enforce symmetry in relationships
+
+    for person in result.people_present:
+        if person.spouse_id and person.spouse_id in people_by_id:
+            partner = people_by_id[person.spouse_id]
+            if not partner.spouse_id:
+                partner.spouse_id = person.local_id
+    
+    # modify role based on relationship
 
     for person in result.people_present:
         if person.father_id and person.father_id in people_by_id:
@@ -128,14 +130,15 @@ def enforce_consistency(result: DocumentExtraction) -> DocumentExtraction:
             if person.role == "dead" and partner.role not in ("husband", "bride", "father", "mother"):
                 partner.role = "spouse_of_deceased"
 
-    # enforce symmetry in relationships
+    # modify is_alive status based on role
 
     for person in result.people_present:
-        if person.spouse_id and person.spouse_id in people_by_id:
-            partner = people_by_id[person.spouse_id]
-            if not partner.spouse_id:
-                partner.spouse_id = person.local_id
-
+        if person.role == "dead":
+            person.is_alive = False
+        elif person.role in ("witness", "officiant"):
+            person.is_alive = True
+        elif person.role in ("husband", "bride") and result.document_type in ("Marriage_Certificate", "Marriage_Banns"):
+            person.is_alive = True
 
     # enforce gender in case of specific roles
 
@@ -150,6 +153,7 @@ def enforce_consistency(result: DocumentExtraction) -> DocumentExtraction:
 def process_document(image_path:str, model_name:str = MODEL_NAME) -> tuple[DocumentExtraction, str]:
     transcription = transcribe_document(image_path, model_name)
     result = extract_structure_from_transcription(transcription, model_name)
+    result = enforce_consistency(result)
     return result, transcription
 
 
