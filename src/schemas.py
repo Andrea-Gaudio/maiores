@@ -18,7 +18,7 @@ class DocumentPerson(BaseModel):
         description="the last name (cognome) of the person, exactly as reported in the document"
     )
 
-    gender: Literal["male", "female"] = Field(
+    gender: Optional[Literal["male", "female"]] = Field(
         None, 
         description = "the sex/gender of the person, if indicated in the document"
     )

@@ -71,7 +71,7 @@ def _guess_mime_type(image_path: str) -> str:
         raise ValueError(f"Estensione immagine non supportata: {ext}")
     return mapping[ext]
 
-def transcribe_document(image_path: str, model_name: str = MODEL_NAME) -> DocumentExtraction:
+def transcribe_document(image_path: str, model_name: str = MODEL_NAME) -> str:
     image_b64 = encode_image(image_path)
     mime_type = _guess_mime_type(image_path)
 
@@ -128,7 +128,7 @@ def enforce_consistency(result: DocumentExtraction) -> DocumentExtraction:
         if person.spouse_id and person.spouse_id in people_by_id:
             partner = people_by_id[person.spouse_id]
             if person.role == "dead" and partner.role not in ("husband", "bride", "father", "mother"):
-                partner.role = "spouse_of_deceased"
+                partner.role = "spouse_of_the_deceased"
 
     # modify is_alive status based on role
 
@@ -163,7 +163,8 @@ def save_extraction(
     image_path: str,
     output_dir: str = "data/2-processed",
     transcription: str | None = None,
-    tag: str | None = None
+    tag: str | None = None,
+    model_name: str = MODEL_NAME,
     ) -> str:
 
     image_name = Path(image_path).stem
@@ -174,7 +175,7 @@ def save_extraction(
     payload = {
         "source_image": str(image_path),
         "extracted_at": datetime.now(timezone.utc).isoformat(),
-        "model": model_name if (model_name := MODEL_NAME) else MODEL_NAME,
+        "model": model_name,
         "transcription" : transcription,
         "extraction": json.loads(result.model_dump_json()),
     }

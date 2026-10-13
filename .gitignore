@@ -12,3 +12,8 @@ wheels/
 # environment variables
 .env
 .env.local
+
+# data and experiments
+data/
+*.ipynb
+.ipynb_checkpoints/
