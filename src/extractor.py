@@ -9,6 +9,9 @@ from schemas import DocumentExtraction
 
 MODEL_NAME = "gemini-3.1-flash-lite"
 
+# The prompts quote Italian terms from the documents on purpose, so the model can recognise them:
+# "di" = son/daughter of (parent alive), "fu" = the late (parent deceased),
+# "figlio di" = son of, "residente in" = resident in, "millenovecento ventinove" = 1929.
 TRANSCRIPTION_PROMPT = """
 You are an expert in Italian paleography. Transcribe this historical Italian civil
 registry document as faithfully as possible, preserving the original wording, 
@@ -25,6 +28,8 @@ to each other at the top of the act: the Gregorian year written in words (e.g.
 Fascist Era year 
 """
 
+# The Cuorgnè example is a death record: Giovanni Battista Luigi Corippolo, 64, farmer,
+# son of the late Giacomo (farmer) and the late Anna Fornengo (housewife, "casalinga").
 STRUCTURE_PROMPT = """
 You are an expert in Italian paleography and civil registry archives. You will
 receive a transcription of a historical Italian civil registry document (birth,
@@ -68,7 +73,7 @@ def _guess_mime_type(image_path: str) -> str:
         ".webp": "image/webp",
     }
     if ext not in mapping:
-        raise ValueError(f"Estensione immagine non supportata: {ext}")
+        raise ValueError(f"Unsupported image extension: {ext}")
     return mapping[ext]
 
 def transcribe_document(image_path: str, model_name: str = MODEL_NAME) -> str:

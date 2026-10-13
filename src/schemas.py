@@ -9,10 +9,12 @@ class DocumentPerson(BaseModel):
         description="a unique local ID, exclusive of this JSON. It is used to define the relationships between the people (e.g. baby_01, father_01, witness_01...)"
     )
 
+    # nome = first name
     name: Optional[str] = Field(
         None,
         description="the first name (nome) of the person, exactly as reported in the document"
     )
+    # cognome = last name
     surname: Optional[str] = Field(
         None,
         description="the last name (cognome) of the person, exactly as reported in the document"
@@ -38,6 +40,7 @@ class DocumentPerson(BaseModel):
     description="the date of death of the individual, if present, in the format YYYY-MM-DD"
     )
 
+    # "di" = son/daughter of (living parent), "fu" = the late (deceased)
     is_alive: Optional[bool] = Field(
         None,
         description='True if introduced by "di" (e.g. "Marco Castiglioni di Giovanni"), False if introduced by "fu" (e.g. "Marco Castiglioni, fu Giovanni")'
@@ -53,6 +56,7 @@ class DocumentPerson(BaseModel):
         description="place of residence of the individual, if present in the text, in the format town, address"
     )
 
+    # contadino = farmer, sarto = tailor; values are kept in Italian as written
     profession : Optional[str] = Field(
         None, 
         description= "The profession of the person, if present in the document, like contadino, sarto, etc"
